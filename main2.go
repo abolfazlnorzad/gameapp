@@ -32,4 +32,6 @@ func main() {
 
 	fmt.Println("create user res", u)
 
+	fmt.Println("---------")
+
 }
