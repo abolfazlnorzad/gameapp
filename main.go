@@ -103,7 +103,11 @@ func profile(w http.ResponseWriter, req *http.Request) {
 		fmt.Println("bad method")
 		return
 	}
-	data, err := io.ReadAll(req.Body)
+	urepo := mysql.New()
+	authSvc := authservice.New("secret", "at", "rt", time.Hour*24, time.Hour*24*7)
+	usvc := userservice.NewUserSvc(urepo, authSvc)
+	authToken := req.Header.Get("Authorization")
+	c, err := authSvc.VerifyToken(authToken)
 	if err != nil {
 		w.Write([]byte(
 			fmt.Sprintf(`{"error": "%s"}`, err.Error()),
@@ -111,19 +115,8 @@ func profile(w http.ResponseWriter, req *http.Request) {
 
 		return
 	}
-	var pr userservice.ProfileRequest
-	uErr := json.Unmarshal(data, &pr)
-	if uErr != nil {
-		w.Write([]byte(
-			fmt.Sprintf(`{"error": "%s"}`, uErr.Error()),
-		))
 
-		return
-	}
-	urepo := mysql.New()
-	authSvc := authservice.New("secret", "at", "rt", time.Hour*24, time.Hour*24*7)
-	usvc := userservice.NewUserSvc(urepo, authSvc)
-	response, err := usvc.GetProfile(pr)
+	response, err := usvc.GetProfile(userservice.ProfileRequest{UserID: c.UserID})
 	if err != nil {
 		w.Write([]byte(
 			fmt.Sprintf(`{"error": "%s"}`, err.Error()),

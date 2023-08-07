@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gameapp/entity"
 	"github.com/golang-jwt/jwt/v5"
+	"strings"
 	"time"
 )
 
@@ -41,8 +42,20 @@ func (s Service) GenerateRefreshToken(u entity.User) (string, error) {
 	return token, nil
 }
 
-func (s Service) VerifyToken(bearerToken string) (entity.User, error) {
-	return entity.User{}, nil
+func (s Service) VerifyToken(bearerToken string) (*Claims, error) {
+	tokenStr := strings.Replace(bearerToken, "Bearer ", "", 1)
+	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(s.signKey), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
+		return claims, nil
+	} else {
+		return nil, err
+	}
 }
 
 func (s Service) generateNewJwtToken(userID uint, subject string, expireDuration time.Duration) (string, error) {
