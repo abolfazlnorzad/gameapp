@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"gameapp/repository/mysql"
+	"gameapp/service/authservice"
 	"gameapp/service/userservice"
 	"io"
 	"net/http"
+	"time"
 )
 
 func main() {
@@ -45,7 +47,8 @@ func register(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	urepo := mysql.New()
-	usvc := userservice.NewUserSvc(urepo)
+	authSvc := authservice.New("secret", "at", "rt", time.Hour*24, time.Hour*24*7)
+	usvc := userservice.NewUserSvc(urepo, authSvc)
 	response, err := usvc.Register(rr)
 	if err != nil {
 		w.Write([]byte(
@@ -80,7 +83,8 @@ func login(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	urepo := mysql.New()
-	usvc := userservice.NewUserSvc(urepo)
+	authSvc := authservice.New("secret", "at", "rt", time.Hour*24, time.Hour*24*7)
+	usvc := userservice.NewUserSvc(urepo, authSvc)
 	response, err := usvc.Login(lr)
 	if err != nil {
 		w.Write([]byte(
@@ -90,7 +94,8 @@ func login(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	fmt.Println("res user login ", response)
-	w.Write([]byte(fmt.Sprintf(`{ "token" : %s }`, response.Token)))
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(fmt.Sprintf(`{ "access token is" : "%s", "refresh token is" : "%s" }`, response.AccessToken, response.RefreshToken)))
 }
 
 func profile(w http.ResponseWriter, req *http.Request) {
@@ -116,7 +121,8 @@ func profile(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	urepo := mysql.New()
-	usvc := userservice.NewUserSvc(urepo)
+	authSvc := authservice.New("secret", "at", "rt", time.Hour*24, time.Hour*24*7)
+	usvc := userservice.NewUserSvc(urepo, authSvc)
 	response, err := usvc.GetProfile(pr)
 	if err != nil {
 		w.Write([]byte(
