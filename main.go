@@ -14,6 +14,7 @@ func main() {
 	fmt.Println("welcome to game app")
 	http.HandleFunc("/register", register)
 	http.HandleFunc("/login", login)
+	http.HandleFunc("/profile", profile)
 	err := http.ListenAndServe("localhost:7777", nil)
 	if err != nil {
 		fmt.Println("err in listenandserver : ", err)
@@ -89,5 +90,41 @@ func login(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	fmt.Println("res user login ", response)
-	w.Write([]byte(`{ "message" : "done! logged in"}`))
+	w.Write([]byte(fmt.Sprintf(`{ "token" : %s }`, response.Token)))
+}
+
+func profile(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		fmt.Println("bad method")
+		return
+	}
+	data, err := io.ReadAll(req.Body)
+	if err != nil {
+		w.Write([]byte(
+			fmt.Sprintf(`{"error": "%s"}`, err.Error()),
+		))
+
+		return
+	}
+	var pr userservice.ProfileRequest
+	uErr := json.Unmarshal(data, &pr)
+	if uErr != nil {
+		w.Write([]byte(
+			fmt.Sprintf(`{"error": "%s"}`, uErr.Error()),
+		))
+
+		return
+	}
+	urepo := mysql.New()
+	usvc := userservice.NewUserSvc(urepo)
+	response, err := usvc.GetProfile(pr)
+	if err != nil {
+		w.Write([]byte(
+			fmt.Sprintf(`{"error": "%s"}`, err.Error()),
+		))
+
+		return
+	}
+	fmt.Println("res user login ", response)
+	w.Write([]byte(response.Name))
 }

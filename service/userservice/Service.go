@@ -5,13 +5,16 @@ import (
 	"gameapp/entity"
 	"gameapp/pkg/name"
 	"gameapp/pkg/phonenumber"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
+	"time"
 )
 
 type Repository interface {
 	IsPhoneNumberUnique(phoneNumber string) (bool, error)
 	Create(u entity.User) (entity.User, error)
 	GetUserByPhoneNumber(phoneNumber string) (entity.User, bool, error)
+	GetUserProfile(userID uint) (entity.User, error)
 }
 
 type Service struct {
@@ -84,7 +87,8 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	User entity.User
+	User  entity.User
+	Token string
 }
 
 func (s Service) Login(req LoginRequest) (LoginResponse, error) {
@@ -104,9 +108,31 @@ func (s Service) Login(req LoginRequest) (LoginResponse, error) {
 		return LoginResponse{}, fmt.Errorf("phone number or password is wrong .")
 	}
 	// return ok
+	token, err := generateNewJwtToken(user.ID, "secret-dorna")
+	if err != nil {
+		return LoginResponse{}, err
+	}
 	return LoginResponse{
-		User: user,
+		User:  user,
+		Token: token,
 	}, nil
+}
+
+type ProfileRequest struct {
+	UserID uint `json:"user_id"`
+}
+
+type ProfileResponse struct {
+	Name string `json:"name"`
+}
+
+func (s Service) GetProfile(req ProfileRequest) (ProfileResponse, error) {
+	// we must pass sanitize data to service layer.
+	u, err := s.repo.GetUserProfile(req.UserID)
+	if err != nil {
+		return ProfileResponse{}, err
+	}
+	return ProfileResponse{Name: u.Name}, nil
 }
 
 func HashPassword(password string) (string, error) {
@@ -117,4 +143,52 @@ func HashPassword(password string) (string, error) {
 func CheckPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
+}
+
+type Claims struct {
+	RegisteredClaims jwt.RegisteredClaims
+	UserID           uint
+}
+
+func (c Claims) GetExpirationTime() (*jwt.NumericDate, error) {
+	//TODO implement me
+	return c.RegisteredClaims.ExpiresAt, nil
+}
+
+func (c Claims) GetIssuedAt() (*jwt.NumericDate, error) {
+	//TODO implement me
+	return c.RegisteredClaims.IssuedAt, nil
+}
+
+func (c Claims) GetNotBefore() (*jwt.NumericDate, error) {
+	//TODO implement me
+	return c.RegisteredClaims.NotBefore, nil
+}
+
+func (c Claims) GetIssuer() (string, error) {
+	//TODO implement me
+	return c.RegisteredClaims.Issuer, nil
+}
+
+func (c Claims) GetSubject() (string, error) {
+	//TODO implement me
+	return c.RegisteredClaims.Subject, nil
+}
+
+func (c Claims) GetAudience() (jwt.ClaimStrings, error) {
+	//TODO implement me
+	return c.RegisteredClaims.Audience, nil
+}
+
+func generateNewJwtToken(userID uint, signKey string) (string, error) {
+	claim := Claims{
+		UserID:           userID,
+		RegisteredClaims: jwt.RegisteredClaims{ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24 * 7))},
+	}
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
+	signingString, err := accessToken.SignedString([]byte(signKey))
+	if err != nil {
+		return "", fmt.Errorf("err in singkey : %w", err)
+	}
+	return signingString, nil
 }
