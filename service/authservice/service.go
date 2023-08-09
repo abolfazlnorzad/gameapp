@@ -9,25 +9,25 @@ import (
 )
 
 type Service struct {
-	signKey               string
-	accessExpirationTime  time.Duration
-	refreshExpirationTime time.Duration
-	accessSubject         string
-	refreshSubject        string
+	config Config
 }
 
-func New(sk string, as string, rs string, ae time.Duration, re time.Duration) Service {
+type Config struct {
+	SignKey               string
+	AccessExpirationTime  time.Duration
+	RefreshExpirationTime time.Duration
+	AccessSubject         string
+	RefreshSubject        string
+}
+
+func New(c Config) Service {
 	return Service{
-		signKey:               sk,
-		accessExpirationTime:  ae,
-		refreshExpirationTime: re,
-		accessSubject:         as,
-		refreshSubject:        rs,
+		config: c,
 	}
 }
 
 func (s Service) GenerateAccessToken(u entity.User) (string, error) {
-	token, err := s.generateNewJwtToken(u.ID, s.accessSubject, s.accessExpirationTime)
+	token, err := s.generateNewJwtToken(u.ID, s.config.AccessSubject, s.config.AccessExpirationTime)
 	if err != nil {
 		return "", err
 	}
@@ -35,7 +35,7 @@ func (s Service) GenerateAccessToken(u entity.User) (string, error) {
 }
 
 func (s Service) GenerateRefreshToken(u entity.User) (string, error) {
-	token, err := s.generateNewJwtToken(u.ID, s.refreshSubject, s.refreshExpirationTime)
+	token, err := s.generateNewJwtToken(u.ID, s.config.RefreshSubject, s.config.RefreshExpirationTime)
 	if err != nil {
 		return "", err
 	}
@@ -45,7 +45,7 @@ func (s Service) GenerateRefreshToken(u entity.User) (string, error) {
 func (s Service) VerifyToken(bearerToken string) (*Claims, error) {
 	tokenStr := strings.Replace(bearerToken, "Bearer ", "", 1)
 	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(s.signKey), nil
+		return []byte(s.config.SignKey), nil
 	})
 	if err != nil {
 		return nil, err
@@ -66,7 +66,7 @@ func (s Service) generateNewJwtToken(userID uint, subject string, expireDuration
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expireDuration))},
 	}
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
-	signingString, err := accessToken.SignedString([]byte(s.signKey))
+	signingString, err := accessToken.SignedString([]byte(s.config.SignKey))
 	if err != nil {
 		return "", fmt.Errorf("err in singkey : %w", err)
 	}
