@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"gameapp/entity"
+	"time"
 )
 
 func (d *MySQLDB) IsPhoneNumberUnique(phoneNumber string) (bool, error) {
@@ -61,7 +62,7 @@ func (d *MySQLDB) GetUserProfile(userID uint) (entity.User, error) {
 
 func ScanUser(row *sql.Row) (entity.User, error) {
 	var user entity.User
-	var createdAt []uint8
+	var createdAt time.Time
 
 	sErr := row.Scan(&user.ID, &user.Name, &user.PhoneNumber, &user.Password, &createdAt)
 	return user, sErr

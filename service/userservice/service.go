@@ -101,9 +101,9 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	User         entity.User
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
+	User         UserInfo `json:"user"`
+	AccessToken  string   `json:"access_token"`
+	RefreshToken string   `json:"refresh_token"`
 }
 
 func (s Service) Login(req LoginRequest) (LoginResponse, error) {
@@ -133,7 +133,11 @@ func (s Service) Login(req LoginRequest) (LoginResponse, error) {
 		return LoginResponse{}, err
 	}
 	return LoginResponse{
-		User:         user,
+		User: UserInfo{
+			ID:          user.ID,
+			Name:        user.Name,
+			PhoneNumber: user.PhoneNumber,
+		},
 		AccessToken:  at,
 		RefreshToken: rt,
 	}, nil

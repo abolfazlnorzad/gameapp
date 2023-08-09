@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"fmt"
 	"gameapp/service/userservice"
 	"github.com/labstack/echo/v4"
 	"net/http"
@@ -9,14 +10,14 @@ import (
 func (s Server) userLogin(e echo.Context) error {
 	var req userservice.LoginRequest
 	bErr := e.Bind(&req)
-
 	if bErr != nil {
-		return echo.NewHTTPError(http.StatusBadRequest)
+		return echo.NewHTTPError(http.StatusBadRequest, bErr.Error())
 	}
 
+	fmt.Println("req ", req)
 	response, err := s.userSvc.Login(req)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError)
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 	return e.JSON(http.StatusOK, response)
 }
