@@ -2,6 +2,7 @@ package httpserver
 
 import (
 	"fmt"
+	"gameapp/dto"
 	"gameapp/pkg/httpmsg"
 	"gameapp/service/userservice"
 	"github.com/labstack/echo/v4"
@@ -25,11 +26,19 @@ func (s Server) userLogin(e echo.Context) error {
 }
 
 func (s Server) userRegister(e echo.Context) error {
-	var req userservice.RegisterRequest
+	var req dto.RegisterRequest
 	bErr := e.Bind(&req)
 	if bErr != nil {
-		return echo.NewHTTPError(http.StatusBadRequest)
+		return echo.NewHTTPError(http.StatusBadRequest, bErr.Error())
 	}
+	if fieldErrors, err := s.userValidator.ValidateRegisterRequest(req); err != nil {
+		code, msg := httpmsg.Error(err)
+		return e.JSON(code, echo.Map{
+			"message": msg,
+			"errors":  fieldErrors,
+		})
+	}
+
 	response, rErr := s.userSvc.Register(req)
 	if rErr != nil {
 		code, msg := httpmsg.Error(rErr)

@@ -2,15 +2,13 @@ package userservice
 
 import (
 	"fmt"
+	"gameapp/dto"
 	"gameapp/entity"
-	"gameapp/pkg/name"
-	"gameapp/pkg/phonenumber"
 	"gameapp/pkg/richerror"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type Repository interface {
-	IsPhoneNumberUnique(phoneNumber string) (bool, error)
 	Create(u entity.User) (entity.User, error)
 	GetUserByPhoneNumber(phoneNumber string) (entity.User, bool, error)
 	GetUserProfile(userID uint) (entity.User, error)
@@ -33,53 +31,14 @@ func NewUserSvc(r Repository, a AuthGenerator) Service {
 	}
 }
 
-type RegisterRequest struct {
-	Name        string `json:"name"`
-	PhoneNumber string `json:"phone_number"`
-	Password    string `json:"password"`
-}
-type UserInfo struct {
-	ID          uint   `json:"id"`
-	Name        string `json:"name"`
-	PhoneNumber string `json:"phone_number"`
-}
-type RegisterResponse struct {
-	User UserInfo `json:"user"`
-}
-
-func (s Service) Register(req RegisterRequest) (RegisterResponse, error) {
+func (s Service) Register(req dto.RegisterRequest) (dto.RegisterResponse, error) {
 	const op = "userservice.Register"
 	// validate phone number and name
-	if isMatched, err := phonenumber.IsPhoneNumberValid(req.PhoneNumber); err != nil || !isMatched {
-		if err != nil {
-			return RegisterResponse{}, richerror.New(op).WithErr(err).
-				WithMeta(map[string]any{"phone_number": req.PhoneNumber})
-		}
-		if !isMatched {
-			return RegisterResponse{}, richerror.New(op).WithMessage("phone number is not valid").
-				WithKind(richerror.KindInvalid).WithMeta(map[string]any{"phone_number": req.PhoneNumber})
-		}
-	}
-	if l := name.NameMustBeMoreThanThreeChar(req.Name); !l {
-		return RegisterResponse{}, richerror.New(op).WithMessage("NameMustBeMoreThanThreeChar").
-			WithKind(richerror.KindInvalid).WithMeta(map[string]any{"phone_number": req.PhoneNumber})
-	}
-
-	// check uniqueness phone number
-	if isUnique, err := s.repo.IsPhoneNumberUnique(req.PhoneNumber); !isUnique || err != nil {
-		if err != nil {
-			return RegisterResponse{}, err
-		}
-		if !isUnique {
-			return RegisterResponse{}, richerror.New(op).WithMessage("phone number is not unique").
-				WithKind(richerror.KindInvalid).WithMeta(map[string]any{"phone_number": req.PhoneNumber})
-		}
-	}
 
 	// todo - tech dept : we must validation password with regex
 	hashedPass, hErr := HashPassword(req.Password)
 	if hErr != nil {
-		return RegisterResponse{}, hErr
+		return dto.RegisterResponse{}, hErr
 	}
 	// create new user
 	createdUser, err := s.repo.Create(entity.User{
@@ -90,11 +49,11 @@ func (s Service) Register(req RegisterRequest) (RegisterResponse, error) {
 	})
 
 	if err != nil {
-		return RegisterResponse{}, fmt.Errorf("unexpected error: %w", err)
+		return dto.RegisterResponse{}, fmt.Errorf("unexpected error: %w", err)
 	}
 
 	// return new user
-	return RegisterResponse{User: UserInfo{
+	return dto.RegisterResponse{User: dto.UserInfo{
 		ID:          createdUser.ID,
 		Name:        createdUser.Name,
 		PhoneNumber: createdUser.PhoneNumber,
@@ -107,9 +66,9 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	User         UserInfo `json:"user"`
-	AccessToken  string   `json:"access_token"`
-	RefreshToken string   `json:"refresh_token"`
+	User         dto.UserInfo `json:"user"`
+	AccessToken  string       `json:"access_token"`
+	RefreshToken string       `json:"refresh_token"`
 }
 
 func (s Service) Login(req LoginRequest) (LoginResponse, error) {
@@ -140,7 +99,7 @@ func (s Service) Login(req LoginRequest) (LoginResponse, error) {
 		return LoginResponse{}, richerror.New(op).WithErr(err)
 	}
 	return LoginResponse{
-		User: UserInfo{
+		User: dto.UserInfo{
 			ID:          user.ID,
 			Name:        user.Name,
 			PhoneNumber: user.PhoneNumber,
