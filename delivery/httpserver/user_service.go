@@ -18,7 +18,8 @@ func (s Server) userLogin(e echo.Context) error {
 	fmt.Println("req ", req)
 	response, err := s.userSvc.Login(req)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		code, msg := httpmsg.Error(err)
+		return echo.NewHTTPError(code, msg)
 	}
 	return e.JSON(http.StatusOK, response)
 }

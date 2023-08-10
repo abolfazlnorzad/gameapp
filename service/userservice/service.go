@@ -113,30 +113,31 @@ type LoginResponse struct {
 }
 
 func (s Service) Login(req LoginRequest) (LoginResponse, error) {
+	const op = "userservice.Login"
 	// check phone number is exist  & // get user by phone number
 	user, isExist, err := s.repo.GetUserByPhoneNumber(req.PhoneNumber)
 	if err != nil {
-		return LoginResponse{}, fmt.Errorf("unexpected err : %w", err)
+		return LoginResponse{}, richerror.New(op).WithErr(err)
 	}
 
 	if !isExist {
-		return LoginResponse{}, fmt.Errorf("phone number or password is wrong .")
+		return LoginResponse{}, richerror.New(op).WithMessage("phone number or password is wrong .").WithKind(richerror.KindInvalid)
 	}
 
 	// compare req.password with user.password
 	ps := CheckPasswordHash(req.Password, user.Password)
 	if !ps {
-		return LoginResponse{}, fmt.Errorf("phone number or password is wrong .")
+		return LoginResponse{}, richerror.New(op).WithMessage("phone number or password is wrong .").WithKind(richerror.KindInvalid)
 	}
 	// return ok
 	at, err := s.auth.GenerateAccessToken(user)
 	if err != nil {
-		return LoginResponse{}, err
+		return LoginResponse{}, richerror.New(op).WithErr(err)
 	}
 
 	rt, err := s.auth.GenerateRefreshToken(user)
 	if err != nil {
-		return LoginResponse{}, err
+		return LoginResponse{}, richerror.New(op).WithErr(err)
 	}
 	return LoginResponse{
 		User: UserInfo{
