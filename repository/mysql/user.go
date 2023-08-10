@@ -2,13 +2,14 @@ package mysql
 
 import (
 	"database/sql"
-	"errors"
-	"fmt"
 	"gameapp/entity"
+	"gameapp/pkg/errmsg"
+	"gameapp/pkg/richerror"
 	"time"
 )
 
 func (d *MySQLDB) IsPhoneNumberUnique(phoneNumber string) (bool, error) {
+	const op = "mysql.IsPhoneNumberUnique"
 	row := d.db.QueryRow("select * from users where phone_number = ?", phoneNumber)
 
 	_, sErr := ScanUser(row)
@@ -16,16 +17,18 @@ func (d *MySQLDB) IsPhoneNumberUnique(phoneNumber string) (bool, error) {
 		if sErr == sql.ErrNoRows {
 			return true, nil
 		}
-		return false, fmt.Errorf("can't scan the QueryRow : %w", sErr)
+		return false, richerror.New(op).WithErr(sErr).WithMessage(errmsg.ErrorMsgCantScanQueryResult).
+			WithKind(richerror.KindUnexpected).WithMeta(map[string]any{"phone_number": phoneNumber})
 	}
 
 	return false, nil
 }
 
 func (d *MySQLDB) Create(u entity.User) (entity.User, error) {
+	const op = "mysql.Create"
 	result, err := d.db.Exec("insert into users(name,phone_number,password) values (?,?,?)", u.Name, u.PhoneNumber, u.Password)
 	if err != nil {
-		return entity.User{}, fmt.Errorf("can't exec insert command : %w", err)
+		return entity.User{}, richerror.New(op).WithErr(err).WithMessage(errmsg.CannotInsertCommand).WithKind(richerror.KindUnexpected)
 	}
 
 	id, _ := result.LastInsertId()
@@ -34,27 +37,31 @@ func (d *MySQLDB) Create(u entity.User) (entity.User, error) {
 }
 
 func (d *MySQLDB) GetUserByPhoneNumber(phoneNumber string) (entity.User, bool, error) {
+	const op = "mysql.GetUserByPhoneNumber"
 	row := d.db.QueryRow("select * from users where phone_number = ?", phoneNumber)
 	user, sErr := ScanUser(row)
 	if sErr != nil {
 		if sErr == sql.ErrNoRows {
 			return entity.User{}, false, nil
 		}
-		return entity.User{}, false, fmt.Errorf("can't scan the QueryRow : %w", sErr)
+		return entity.User{}, false, richerror.New(op).WithErr(sErr).WithMessage(errmsg.ErrorMsgCantScanQueryResult).
+			WithKind(richerror.KindUnexpected)
 	}
 
 	return user, true, nil
 }
 
 func (d *MySQLDB) GetUserProfile(userID uint) (entity.User, error) {
+	const op = "mysql.GetUserProfile"
 	row := d.db.QueryRow("select * from users where id = ?", userID)
-
 	user, sErr := ScanUser(row)
 	if sErr != nil {
 		if sErr == sql.ErrNoRows {
-			return entity.User{}, errors.New("record not found")
+			return entity.User{}, richerror.New(op).WithErr(sErr).WithMessage(errmsg.ErrorMsgNotFound).
+				WithKind(richerror.KindNotFound).WithMeta(map[string]any{"userID": user})
 		}
-		return entity.User{}, fmt.Errorf("can't scan the QueryRow : %w", sErr)
+		return entity.User{}, richerror.New(op).WithErr(sErr).WithMessage(errmsg.ErrorMsgCantScanQueryResult).
+			WithKind(richerror.KindUnexpected)
 	}
 
 	return user, nil

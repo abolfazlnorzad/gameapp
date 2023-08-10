@@ -5,6 +5,7 @@ import (
 	"gameapp/entity"
 	"gameapp/pkg/name"
 	"gameapp/pkg/phonenumber"
+	"gameapp/pkg/richerror"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -47,17 +48,21 @@ type RegisterResponse struct {
 }
 
 func (s Service) Register(req RegisterRequest) (RegisterResponse, error) {
+	const op = "userservice.Register"
 	// validate phone number and name
 	if isMatched, err := phonenumber.IsPhoneNumberValid(req.PhoneNumber); err != nil || !isMatched {
 		if err != nil {
-			return RegisterResponse{}, err
+			return RegisterResponse{}, richerror.New(op).WithErr(err).
+				WithMeta(map[string]any{"phone_number": req.PhoneNumber})
 		}
 		if !isMatched {
-			return RegisterResponse{}, fmt.Errorf("phone number is not valid")
+			return RegisterResponse{}, richerror.New(op).WithMessage("phone number is not valid").
+				WithKind(richerror.KindInvalid).WithMeta(map[string]any{"phone_number": req.PhoneNumber})
 		}
 	}
 	if l := name.NameMustBeMoreThanThreeChar(req.Name); !l {
-		return RegisterResponse{}, fmt.Errorf("NameMustBeMoreThanThreeChar")
+		return RegisterResponse{}, richerror.New(op).WithMessage("NameMustBeMoreThanThreeChar").
+			WithKind(richerror.KindInvalid).WithMeta(map[string]any{"phone_number": req.PhoneNumber})
 	}
 
 	// check uniqueness phone number
@@ -66,7 +71,8 @@ func (s Service) Register(req RegisterRequest) (RegisterResponse, error) {
 			return RegisterResponse{}, err
 		}
 		if !isUnique {
-			return RegisterResponse{}, fmt.Errorf("phone number is not unique")
+			return RegisterResponse{}, richerror.New(op).WithMessage("phone number is not unique").
+				WithKind(richerror.KindInvalid).WithMeta(map[string]any{"phone_number": req.PhoneNumber})
 		}
 	}
 

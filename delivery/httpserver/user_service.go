@@ -2,6 +2,7 @@ package httpserver
 
 import (
 	"fmt"
+	"gameapp/pkg/httpmsg"
 	"gameapp/service/userservice"
 	"github.com/labstack/echo/v4"
 	"net/http"
@@ -30,7 +31,8 @@ func (s Server) userRegister(e echo.Context) error {
 	}
 	response, rErr := s.userSvc.Register(req)
 	if rErr != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError)
+		code, msg := httpmsg.Error(rErr)
+		return echo.NewHTTPError(code, msg)
 	}
 	return e.JSON(http.StatusCreated, response)
 }
@@ -44,7 +46,8 @@ func (s Server) userProfile(e echo.Context) error {
 
 	response, err := s.userSvc.GetProfile(userservice.ProfileRequest{UserID: c.UserID})
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		code, msg := httpmsg.Error(err)
+		return echo.NewHTTPError(code, msg)
 	}
 	return e.JSON(http.StatusOK, response)
 }
