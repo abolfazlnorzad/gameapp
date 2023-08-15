@@ -36,19 +36,20 @@ func (d *MySQLDB) Create(u entity.User) (entity.User, error) {
 	return u, nil
 }
 
-func (d *MySQLDB) GetUserByPhoneNumber(phoneNumber string) (entity.User, bool, error) {
+func (d *MySQLDB) GetUserByPhoneNumber(phoneNumber string) (entity.User, error) {
 	const op = "mysql.GetUserByPhoneNumber"
 	row := d.db.QueryRow("select * from users where phone_number = ?", phoneNumber)
 	user, sErr := ScanUser(row)
 	if sErr != nil {
 		if sErr == sql.ErrNoRows {
-			return entity.User{}, false, nil
+			return entity.User{}, richerror.New(op).WithErr(sErr).WithMessage(errmsg.ErrorMsgNotFound).
+				WithKind(richerror.KindNotFound)
 		}
-		return entity.User{}, false, richerror.New(op).WithErr(sErr).WithMessage(errmsg.ErrorMsgCantScanQueryResult).
+		return entity.User{}, richerror.New(op).WithErr(sErr).WithMessage(errmsg.ErrorMsgCantScanQueryResult).
 			WithKind(richerror.KindUnexpected)
 	}
 
-	return user, true, nil
+	return user, nil
 }
 
 func (d *MySQLDB) GetUserProfile(userID uint) (entity.User, error) {

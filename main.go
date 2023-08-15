@@ -3,6 +3,7 @@ package main
 import (
 	"gameapp/config"
 	"gameapp/delivery/httpserver"
+	"gameapp/delivery/httpserver/userhttpserverhandler"
 	"gameapp/repository/mysql"
 	"gameapp/service/authservice"
 	"gameapp/service/userservice"
@@ -39,7 +40,8 @@ func main() {
 
 	userSvc, authSvc, userV := setupServices(cfg)
 
-	server := httpserver.New(cfg, authSvc, userSvc, userV)
+	uh := userhttpserverhandler.New(authSvc, userSvc, userV)
+	server := httpserver.New(cfg, uh)
 
 	server.Serve()
 
