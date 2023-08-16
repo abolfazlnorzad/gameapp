@@ -13,11 +13,11 @@ type Service struct {
 }
 
 type Config struct {
-	SignKey               string
-	AccessExpirationTime  time.Duration
-	RefreshExpirationTime time.Duration
-	AccessSubject         string
-	RefreshSubject        string
+	SignKey               string        `koanf:"sign_key"`
+	AccessExpirationTime  time.Duration `koanf:"access_expiration_time"`
+	RefreshExpirationTime time.Duration `koanf:"refresh_expiration_time"`
+	AccessSubject         string        `koanf:"access_subject"`
+	RefreshSubject        string        `koanf:"refresh_subject"`
 }
 
 func New(c Config) Service {

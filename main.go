@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"gameapp/config"
 	"gameapp/delivery/httpserver"
 	"gameapp/delivery/httpserver/userhttpserverhandler"
@@ -20,6 +21,10 @@ const (
 )
 
 func main() {
+	cfg2 := config.Load()
+
+	fmt.Printf("cfg222 %+v \n ", cfg2)
+
 	cfg := config.Config{
 		HTTPServer: config.HTTPServer{Port: 7777},
 		Auth: authservice.Config{
@@ -40,7 +45,7 @@ func main() {
 
 	userSvc, authSvc, userV := setupServices(cfg)
 
-	uh := userhttpserverhandler.New(authSvc, userSvc, userV)
+	uh := userhttpserverhandler.New(authSvc, userSvc, userV, cfg.Auth)
 	server := httpserver.New(cfg, uh)
 
 	server.Serve()
