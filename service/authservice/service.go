@@ -27,7 +27,7 @@ func New(c Config) Service {
 }
 
 func (s Service) GenerateAccessToken(u entity.User) (string, error) {
-	token, err := s.generateNewJwtToken(u.ID, s.config.AccessSubject, s.config.AccessExpirationTime)
+	token, err := s.generateNewJwtToken(u.ID, s.config.AccessSubject, u.Role, s.config.AccessExpirationTime)
 	if err != nil {
 		return "", err
 	}
@@ -35,7 +35,7 @@ func (s Service) GenerateAccessToken(u entity.User) (string, error) {
 }
 
 func (s Service) GenerateRefreshToken(u entity.User) (string, error) {
-	token, err := s.generateNewJwtToken(u.ID, s.config.RefreshSubject, s.config.RefreshExpirationTime)
+	token, err := s.generateNewJwtToken(u.ID, s.config.RefreshSubject, u.Role, s.config.RefreshExpirationTime)
 	if err != nil {
 		return "", err
 	}
@@ -58,9 +58,10 @@ func (s Service) VerifyToken(bearerToken string) (*Claims, error) {
 	}
 }
 
-func (s Service) generateNewJwtToken(userID uint, subject string, expireDuration time.Duration) (string, error) {
+func (s Service) generateNewJwtToken(userID uint, subject string, r entity.Role, expireDuration time.Duration) (string, error) {
 	claim := Claims{
 		UserID: userID,
+		Role:   r,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   subject,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expireDuration))},

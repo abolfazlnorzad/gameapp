@@ -3,6 +3,7 @@ package httpserver
 import (
 	"fmt"
 	"gameapp/config"
+	"gameapp/delivery/httpserver/backofficehandler"
 	"gameapp/delivery/httpserver/userhttpserverhandler"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -11,12 +12,14 @@ import (
 type Server struct {
 	config   config.Config
 	uHandler userhttpserverhandler.Handler
+	bHandler backofficehandler.Handler
 }
 
-func New(config config.Config, uHandler userhttpserverhandler.Handler) Server {
+func New(config config.Config, uHandler userhttpserverhandler.Handler, bHandler backofficehandler.Handler) Server {
 	return Server{
 		config:   config,
 		uHandler: uHandler,
+		bHandler: bHandler,
 	}
 }
 
@@ -28,6 +31,7 @@ func (s Server) Serve() {
 	e.Use(middleware.Recover())
 
 	s.uHandler.SetUserRoutes(e)
+	s.bHandler.SetRoutes(e)
 
 	// Start server
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", s.config.HTTPServer.Port)))

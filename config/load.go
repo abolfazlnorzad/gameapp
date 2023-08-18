@@ -32,8 +32,9 @@ func Load() *Config {
 	// replace `_` with `.` and strip the MYVAR_ prefix so that
 	// only "parent1.child1.name" remains.
 	k.Load(env.Provider(EnvPrefix, ".", func(s string) string {
-		return strings.Replace(strings.ToLower(
+		str := strings.Replace(strings.ToLower(
 			strings.TrimPrefix(s, EnvPrefix)), "_", ".", -1)
+		return strings.Replace(str, "..", "_", -1)
 	}), nil)
 
 	var cfg Config

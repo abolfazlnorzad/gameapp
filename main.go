@@ -4,8 +4,12 @@ import (
 	"fmt"
 	"gameapp/config"
 	"gameapp/delivery/httpserver"
+	"gameapp/delivery/httpserver/backofficehandler"
 	"gameapp/delivery/httpserver/userhttpserverhandler"
 	"gameapp/repository/mysql"
+	"gameapp/repository/mysql/mysqlacl"
+	"gameapp/repository/mysql/mysqluser"
+	"gameapp/service/aclservice"
 	"gameapp/service/authservice"
 	"gameapp/service/userservice"
 	"gameapp/validator/uservalidator"
@@ -43,19 +47,23 @@ func main() {
 		},
 	}
 
-	userSvc, authSvc, userV := setupServices(cfg)
+	userSvc, authSvc, userV, aclSvc := setupServices(cfg)
 
 	uh := userhttpserverhandler.New(authSvc, userSvc, userV, cfg.Auth)
-	server := httpserver.New(cfg, uh)
+	bh := backofficehandler.New(aclSvc, authSvc, cfg.Auth)
+	server := httpserver.New(cfg, uh, bh)
 
 	server.Serve()
 
 }
 
-func setupServices(cfg config.Config) (userservice.Service, authservice.Service, uservalidator.Validator) {
+func setupServices(cfg config.Config) (userservice.Service, authservice.Service, uservalidator.Validator, aclservice.Service) {
 	authSvc := authservice.New(cfg.Auth)
 	r := mysql.New(cfg.Mysql)
-	userSvc := userservice.NewUserSvc(r, authSvc)
-	userV := uservalidator.New(r)
-	return userSvc, authSvc, userV
+	userRepo := mysqluser.New(r)
+	userSvc := userservice.NewUserSvc(userRepo, authSvc)
+	userV := uservalidator.New(userRepo)
+	aclRepo := mysqlacl.New(r)
+	aclSvc := aclservice.New(aclRepo)
+	return userSvc, authSvc, userV, aclSvc
 }

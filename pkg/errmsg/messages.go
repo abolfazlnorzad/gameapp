@@ -6,4 +6,5 @@ const (
 	SomethingWentWrong          = "something went wrong"
 	CannotInsertCommand         = "can't exec insert command"
 	ErrorMsgInvalidInput        = "invalid input"
+	ErrorMsgUserNotAllowed      = "not allowed "
 )
