@@ -36,27 +36,27 @@ func (d *DB) GetUserPermissionTitle(userID uint, role entity.Role) ([]entity.Per
 			WithMessage(errmsg.SomethingWentWrong).WithKind(richerror.KindUnexpected)
 	}
 
-	//userAcl := make([]entity.Acl, 0)
-	//uRows, err := d.conn.Conn().Query("select * from acls where actor_type=? and actor_id=?", userAcl, userID)
-	//if err != nil {
-	//	return nil, richerror.New(op).WithErr(err).WithMessage(errmsg.SomethingWentWrong).
-	//		WithKind(richerror.KindUnexpected)
-	//}
-	//defer uRows.Close()
-	//for uRows.Next() {
-	//	acl, err := ScanAcl(uRows)
-	//	if err != nil {
-	//		return nil, richerror.New(op).WithErr(err).
-	//			WithMessage(errmsg.SomethingWentWrong).WithKind(richerror.KindUnexpected)
-	//	}
-	//
-	//	userAcl = append(userAcl, acl)
-	//}
-	//err = uRows.Err()
-	//if err != nil {
-	//	return nil, richerror.New(op).WithErr(err).
-	//		WithMessage(errmsg.SomethingWentWrong).WithKind(richerror.KindUnexpected)
-	//}
+	userAcl := make([]entity.Acl, 0)
+	uRows, err := d.conn.Conn().Query("select * from acls where actor_type=? and actor_id=?", entity.UserActorType, userID)
+	if err != nil {
+		return nil, richerror.New(op).WithErr(err).WithMessage(errmsg.SomethingWentWrong).
+			WithKind(richerror.KindUnexpected)
+	}
+	defer uRows.Close()
+	for uRows.Next() {
+		acl, err := ScanAcl(uRows)
+		if err != nil {
+			return nil, richerror.New(op).WithErr(err).
+				WithMessage(errmsg.SomethingWentWrong).WithKind(richerror.KindUnexpected)
+		}
+
+		userAcl = append(userAcl, acl)
+	}
+	err = uRows.Err()
+	if err != nil {
+		return nil, richerror.New(op).WithErr(err).
+			WithMessage(errmsg.SomethingWentWrong).WithKind(richerror.KindUnexpected)
+	}
 	permissionIDs := make([]uint, 0)
 
 	for _, r := range roleAcl {
@@ -65,11 +65,11 @@ func (d *DB) GetUserPermissionTitle(userID uint, role entity.Role) ([]entity.Per
 		}
 	}
 
-	//for _, r := range userAcl {
-	//	if !slice.DoesExist(permissionIDs, r.PermissionID) {
-	//		permissionIDs = append(permissionIDs, r.PermissionID)
-	//	}
-	//}
+	for _, r := range userAcl {
+		if !slice.DoesExist(permissionIDs, r.PermissionID) {
+			permissionIDs = append(permissionIDs, r.PermissionID)
+		}
+	}
 
 	if len(permissionIDs) == 0 {
 		return nil, nil
