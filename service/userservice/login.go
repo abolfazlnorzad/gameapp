@@ -13,7 +13,6 @@ func (s Service) Login(req dto.LoginRequest) (dto.LoginResponse, error) {
 	if err != nil {
 		return dto.LoginResponse{}, richerror.New(op).WithErr(err)
 	}
-
 	// compare req.password with user.password
 	ps := checkPasswordHash(req.Password, user.Password)
 	if !ps {
@@ -24,7 +23,6 @@ func (s Service) Login(req dto.LoginRequest) (dto.LoginResponse, error) {
 	if err != nil {
 		return dto.LoginResponse{}, richerror.New(op).WithErr(err)
 	}
-
 	rt, err := s.auth.GenerateRefreshToken(user)
 	if err != nil {
 		return dto.LoginResponse{}, richerror.New(op).WithErr(err)

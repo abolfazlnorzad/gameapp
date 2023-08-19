@@ -15,22 +15,18 @@ services:
       MYSQL_DATABASE: gameapp_db
       MYSQL_USER: root
       MYSQL_PASSWORD: password
-
-  phpmyadmin:
-    depends_on:
-      - gameapp-database
-    image: phpmyadmin
+  gameapp-redis:
+    image: redis:alpine
+    container_name: gameapp-redis
     restart: always
     ports:
-      - "8080:80"
+      - '6379:6379'
+    command: redis-server --loglevel warning --protected-mode no
     environment:
-      PMA_HOST: db
-      MYSQL_ROOT_PASSWORD: password
-    networks:
-      - mysql-phpmyadmin
-
-networks:
-  mysql-phpmyadmin:
+      - ALLOW_EMPTY_PASSWORD=yes
+    volumes:
+      - gameapp-redis-data:/data
 
 volumes:
   dbdata:
+  gameapp-redis-data:

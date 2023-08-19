@@ -5,7 +5,7 @@ type Question struct {
 	Text              string
 	Correct           PossibleAnswerChoice
 	PossibleAnswerIDs []uint
-	CategoryID        uint
+	Category          Category
 	Difficulty        QuestionDifficulty
 }
 

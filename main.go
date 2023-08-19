@@ -5,13 +5,16 @@ import (
 	"gameapp/config"
 	"gameapp/delivery/httpserver"
 	"gameapp/delivery/httpserver/backofficehandler"
+	"gameapp/delivery/httpserver/matchinghandler"
 	"gameapp/delivery/httpserver/userhttpserverhandler"
 	"gameapp/repository/mysql"
 	"gameapp/repository/mysql/mysqlacl"
 	"gameapp/repository/mysql/mysqluser"
 	"gameapp/service/aclservice"
 	"gameapp/service/authservice"
+	"gameapp/service/matchingservice"
 	"gameapp/service/userservice"
+	"gameapp/validator/matchingvalidator"
 	"gameapp/validator/uservalidator"
 	"time"
 )
@@ -25,9 +28,7 @@ const (
 )
 
 func main() {
-	cfg2 := config.Load()
-
-	fmt.Printf("cfg222 %+v \n ", cfg2)
+	//cfg := config.Load()
 
 	cfg := config.Config{
 		HTTPServer: config.HTTPServer{Port: 7777},
@@ -46,18 +47,19 @@ func main() {
 			DBName:   "gameapp_db",
 		},
 	}
-
-	userSvc, authSvc, userV, aclSvc := setupServices(cfg)
+	fmt.Println("cfg", cfg.Mysql)
+	userSvc, authSvc, userV, aclSvc, matchSvc, matchV := setupServices(cfg)
 
 	uh := userhttpserverhandler.New(authSvc, userSvc, userV, cfg.Auth)
 	bh := backofficehandler.New(aclSvc, authSvc, cfg.Auth)
-	server := httpserver.New(cfg, uh, bh)
+	mh := matchinghandler.New(matchSvc, authSvc, cfg.Auth, matchV)
+	server := httpserver.New(cfg, uh, bh, mh)
 
 	server.Serve()
 
 }
 
-func setupServices(cfg config.Config) (userservice.Service, authservice.Service, uservalidator.Validator, aclservice.Service) {
+func setupServices(cfg config.Config) (userservice.Service, authservice.Service, uservalidator.Validator, aclservice.Service, matchingservice.Service, matchingvalidator.Validator) {
 	authSvc := authservice.New(cfg.Auth)
 	r := mysql.New(cfg.Mysql)
 	userRepo := mysqluser.New(r)
@@ -65,5 +67,8 @@ func setupServices(cfg config.Config) (userservice.Service, authservice.Service,
 	userV := uservalidator.New(userRepo)
 	aclRepo := mysqlacl.New(r)
 	aclSvc := aclservice.New(aclRepo)
-	return userSvc, authSvc, userV, aclSvc
+	matchSvc := matchingservice.New()
+	matchV := matchingvalidator.New()
+	return userSvc, authSvc, userV, aclSvc, matchSvc, matchV
+
 }

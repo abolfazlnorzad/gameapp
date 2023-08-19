@@ -2,6 +2,7 @@ package mysqluser
 
 import (
 	"database/sql"
+	"fmt"
 	"gameapp/entity"
 	"gameapp/pkg/errmsg"
 	"gameapp/pkg/richerror"
@@ -12,7 +13,6 @@ import (
 func (d *DB) IsPhoneNumberUnique(phoneNumber string) (bool, error) {
 	const op = "mysql.IsPhoneNumberUnique"
 	row := d.conn.Conn().QueryRow("select * from users where phone_number = ?", phoneNumber)
-
 	_, sErr := ScanUser(row)
 	if sErr != nil {
 		if sErr == sql.ErrNoRows {
@@ -39,8 +39,9 @@ func (d *DB) Create(u entity.User) (entity.User, error) {
 
 func (d *DB) GetUserByPhoneNumber(phoneNumber string) (entity.User, error) {
 	const op = "mysql.GetUserByPhoneNumber"
-	row := d.conn.Conn().QueryRow("select * from users where phone_number = ?", phoneNumber)
+	row := d.conn.Conn().QueryRow("select * from `users` where phone_number = ?", phoneNumber)
 	user, sErr := ScanUser(row)
+	fmt.Println("err in fi sErr", sErr)
 	if sErr != nil {
 		if sErr == sql.ErrNoRows {
 			return entity.User{}, richerror.New(op).WithErr(sErr).WithMessage(errmsg.ErrorMsgNotFound).

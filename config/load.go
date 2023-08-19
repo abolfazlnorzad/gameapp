@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func Load() *Config {
+func Load() Config {
 	var k = koanf.New(".")
 
 	// Load default values using the confmap provider.
@@ -43,6 +43,6 @@ func Load() *Config {
 	if uErr != nil {
 		panic("something went wrong!")
 	}
-	return &cfg
+	return cfg
 
 }
