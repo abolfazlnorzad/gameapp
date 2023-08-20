@@ -15,6 +15,7 @@ type Server struct {
 	uHandler userhttpserverhandler.Handler
 	bHandler backofficehandler.Handler
 	mHandler matchinghandler.Handler
+	Router   *echo.Echo
 }
 
 func New(config config.Config, uHandler userhttpserverhandler.Handler, bHandler backofficehandler.Handler, mHandler matchinghandler.Handler) Server {
@@ -23,20 +24,25 @@ func New(config config.Config, uHandler userhttpserverhandler.Handler, bHandler 
 		uHandler: uHandler,
 		bHandler: bHandler,
 		mHandler: mHandler,
+		Router:   echo.New(),
 	}
 }
 
 func (s Server) Serve() {
-	e := echo.New()
 
 	// Middleware
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
+	s.Router.Use(middleware.Logger())
+	s.Router.Use(middleware.Recover())
 
-	s.uHandler.SetUserRoutes(e)
-	s.bHandler.SetRoutes(e)
-	s.mHandler.SetRoutes(e)
+	s.uHandler.SetUserRoutes(s.Router)
+	s.bHandler.SetRoutes(s.Router)
+	s.mHandler.SetRoutes(s.Router)
 
 	// Start server
-	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", s.config.HTTPServer.Port)))
+	address := fmt.Sprintf(":%d", s.config.HTTPServer.Port)
+	err := s.Router.Start(address)
+	if err != nil {
+		fmt.Println("err in start server", err)
+	}
+	//s.Router.Logger.Fatal(s.Router.Start(fmt.Sprintf(":%d", s.config.HTTPServer.Port)))
 }

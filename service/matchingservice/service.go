@@ -1,6 +1,7 @@
 package matchingservice
 
 import (
+	"fmt"
 	"gameapp/dto"
 	"gameapp/entity"
 	"gameapp/pkg/errmsg"
@@ -33,4 +34,9 @@ func (s Service) AddToWaitingList(req dto.AddToWaitingListRequest) (dto.AddToWai
 	return dto.AddToWaitingListResponse{
 		Timeout: s.config.WaitingTimeout,
 	}, nil
+}
+
+func (s Service) MatchWaitedUsers(req dto.MatchWaitedUsersRequest) (dto.MatchWaitedUsersResponse, error) {
+	fmt.Println("MatchWaitedUsers")
+	return dto.MatchWaitedUsersResponse{}, nil
 }

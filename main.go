@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"gameapp/config"
 	"gameapp/delivery/httpserver"
@@ -19,6 +20,7 @@ import (
 	"gameapp/validator/uservalidator"
 	"os"
 	"os/signal"
+	"sync"
 	"time"
 )
 
@@ -62,17 +64,29 @@ func main() {
 		server.Serve()
 	}()
 	done := make(chan bool)
+	var wg sync.WaitGroup
 	go func() {
-		sch := scheduler.New()
-		sch.Start(done)
+		sch := scheduler.New(matchSvc)
+		wg.Add(1)
+		sch.Start(done, &wg)
 	}()
 
 	ex := make(chan os.Signal)
 	signal.Notify(ex, os.Interrupt)
 	ddd := <-ex
+	ctx := context.Background()
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, 7*time.Second)
+	defer cancel()
+	err := server.Router.Shutdown(ctxWithTimeout)
+	if err != nil {
+		fmt.Println("http server shutdown error", err)
+	}
 	fmt.Printf("gracefully shout down called. %+v \n", ddd)
 	done <- true
 	time.Sleep(5 * time.Second)
+	wg.Wait()
+	<-ctxWithTimeout.Done()
+
 }
 
 func setupServices(cfg config.Config) (userservice.Service, authservice.Service, uservalidator.Validator, aclservice.Service, matchingservice.Service, matchingvalidator.Validator) {
