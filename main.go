@@ -10,12 +10,15 @@ import (
 	"gameapp/repository/mysql"
 	"gameapp/repository/mysql/mysqlacl"
 	"gameapp/repository/mysql/mysqluser"
+	"gameapp/scheduler"
 	"gameapp/service/aclservice"
 	"gameapp/service/authservice"
 	"gameapp/service/matchingservice"
 	"gameapp/service/userservice"
 	"gameapp/validator/matchingvalidator"
 	"gameapp/validator/uservalidator"
+	"os"
+	"os/signal"
 	"time"
 )
 
@@ -55,8 +58,21 @@ func main() {
 	mh := matchinghandler.New(matchSvc, authSvc, cfg.Auth, matchV)
 	server := httpserver.New(cfg, uh, bh, mh)
 
-	server.Serve()
+	go func() {
+		server.Serve()
+	}()
+	done := make(chan bool)
+	go func() {
+		sch := scheduler.New()
+		sch.Start(done)
+	}()
 
+	ex := make(chan os.Signal)
+	signal.Notify(ex, os.Interrupt)
+	ddd := <-ex
+	fmt.Printf("gracefully shout down called. %+v \n", ddd)
+	done <- true
+	time.Sleep(5 * time.Second)
 }
 
 func setupServices(cfg config.Config) (userservice.Service, authservice.Service, uservalidator.Validator, aclservice.Service, matchingservice.Service, matchingvalidator.Validator) {
