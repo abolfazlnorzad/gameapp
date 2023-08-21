@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"gameapp/adapter/redisadapter"
 	"gameapp/config"
 	"gameapp/delivery/httpserver"
 	"gameapp/delivery/httpserver/backofficehandler"
@@ -11,10 +12,12 @@ import (
 	"gameapp/repository/mysql"
 	"gameapp/repository/mysql/mysqlacl"
 	"gameapp/repository/mysql/mysqluser"
+	"gameapp/repository/redis/redispresence"
 	"gameapp/scheduler"
 	"gameapp/service/aclservice"
 	"gameapp/service/authservice"
 	"gameapp/service/matchingservice"
+	"gameapp/service/precenseservice"
 	"gameapp/service/userservice"
 	"gameapp/validator/matchingvalidator"
 	"gameapp/validator/uservalidator"
@@ -51,11 +54,21 @@ func main() {
 			Host:     "localhost",
 			DBName:   "gameapp_db",
 		},
+		PresenceService: precenseservice.Config{
+			ExpirationTime: time.Duration(time.Hour * 1),
+			Prefix:         "presence",
+		},
+		Redis: redisadapter.Config{
+			Host:     "localhost",
+			Port:     6379,
+			Password: "",
+			DB:       0,
+		},
 	}
-	fmt.Println("cfg", cfg.Mysql)
-	userSvc, authSvc, userV, aclSvc, matchSvc, matchV := setupServices(cfg)
+	fmt.Println("cfg", cfg)
+	userSvc, authSvc, userV, aclSvc, matchSvc, matchV, presenceSvc := setupServices(cfg)
 
-	uh := userhttpserverhandler.New(authSvc, userSvc, userV, cfg.Auth)
+	uh := userhttpserverhandler.New(authSvc, userSvc, userV, cfg.Auth, presenceSvc)
 	bh := backofficehandler.New(aclSvc, authSvc, cfg.Auth)
 	mh := matchinghandler.New(matchSvc, authSvc, cfg.Auth, matchV)
 	server := httpserver.New(cfg, uh, bh, mh)
@@ -89,7 +102,7 @@ func main() {
 
 }
 
-func setupServices(cfg config.Config) (userservice.Service, authservice.Service, uservalidator.Validator, aclservice.Service, matchingservice.Service, matchingvalidator.Validator) {
+func setupServices(cfg config.Config) (userservice.Service, authservice.Service, uservalidator.Validator, aclservice.Service, matchingservice.Service, matchingvalidator.Validator, precenseservice.Service) {
 	authSvc := authservice.New(cfg.Auth)
 	r := mysql.New(cfg.Mysql)
 	userRepo := mysqluser.New(r)
@@ -99,6 +112,9 @@ func setupServices(cfg config.Config) (userservice.Service, authservice.Service,
 	aclSvc := aclservice.New(aclRepo)
 	matchSvc := matchingservice.New()
 	matchV := matchingvalidator.New()
-	return userSvc, authSvc, userV, aclSvc, matchSvc, matchV
+	redisAdp := redisadapter.New(cfg.Redis)
+	pr := redispresence.New(redisAdp)
+	presenceSvc := precenseservice.New(pr, cfg.PresenceService)
+	return userSvc, authSvc, userV, aclSvc, matchSvc, matchV, presenceSvc
 
 }
