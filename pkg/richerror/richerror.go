@@ -18,6 +18,9 @@ const (
 )
 
 func (r RichError) Error() string {
+	if r.message == "" {
+		return r.wrappedError.Error()
+	}
 	return r.message
 }
 
