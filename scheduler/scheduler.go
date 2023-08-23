@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"context"
 	"fmt"
 	"gameapp/dto"
 	"gameapp/service/matchingservice"
@@ -34,5 +35,5 @@ func (s Scheduler) Start(done <-chan bool, wg *sync.WaitGroup) {
 }
 
 func (s Scheduler) MatchWaitedUsers() {
-	s.matchSvc.MatchWaitedUsers(dto.MatchWaitedUsersRequest{})
+	s.matchSvc.MatchWaitedUsers(context.Background(), dto.MatchWaitedUsersRequest{})
 }
