@@ -1,5 +1,7 @@
 version: '3.7'
-
+networks:
+  app-tier:
+    driver: bridge
 services:
   gameapp-database:
     image: 'mysql/mysql-server:8.0'
@@ -9,7 +11,7 @@ services:
     volumes:
       - dbdata:/var/lib/mysql
     restart: always
-    command: ['mysqld', '--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci']
+    command: [ 'mysqld', '--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci' ]
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: gameapp_db
@@ -27,20 +29,15 @@ services:
     volumes:
       - gameapp-redis-data:/data
   nats:
-    image: nats
+    image: 'bitnami/nats:latest'
     ports:
-      - "8222:8222"
-    command: "--cluster_name NATS --cluster nats://0.0.0.0:6222 --http_port 8222 "
-    networks: [ "nats" ]
-  nats-1:
-      image: nats
-      command: "--cluster_name NATS --cluster nats://0.0.0.0:6222 --routes=nats://ruser:T0pS3cr3t@nats:6222"
-      networks: [ "nats" ]
-      depends_on: [ "nats" ]
+      - 4222:4222
+      - 6222:6222
+      - 8222:8222
+    networks:
+      - app-tier
 
 volumes:
   dbdata:
   gameapp-redis-data:
-networks:
-  nats:
-    name: nats
+
