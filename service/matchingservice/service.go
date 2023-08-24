@@ -79,6 +79,11 @@ func (s Service) Match(ctx context.Context, category entity.Category, wg *sync.W
 		userIDs = append(userIDs, member.UserID)
 	}
 
+	if len(userIDs) < 2 {
+		fmt.Println("less than two users.")
+		return
+	}
+
 	presenceList, err := s.presenceClient.GetPresence(ctx, dto.GetPresenceRequest{UserIDs: userIDs})
 	if err != nil {
 		// TODO - log error

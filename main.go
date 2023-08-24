@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"gameapp/adapter/presence"
 	"gameapp/adapter/redisadapter"
 	"gameapp/config"
 	"gameapp/delivery/httpserver"
@@ -12,6 +13,7 @@ import (
 	"gameapp/repository/mysql"
 	"gameapp/repository/mysql/mysqlacl"
 	"gameapp/repository/mysql/mysqluser"
+	"gameapp/repository/redis/redismatching"
 	"gameapp/repository/redis/redispresence"
 	"gameapp/scheduler"
 	"gameapp/service/aclservice"
@@ -21,6 +23,8 @@ import (
 	"gameapp/service/userservice"
 	"gameapp/validator/matchingvalidator"
 	"gameapp/validator/uservalidator"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"os"
 	"os/signal"
 	"sync"
@@ -66,7 +70,12 @@ func main() {
 		},
 	}
 	fmt.Println("cfg", cfg)
-	userSvc, authSvc, userV, aclSvc, matchSvc, matchV, presenceSvc := setupServices(cfg)
+	cl, err := grpc.Dial(":8888", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		panic(err)
+	}
+	defer cl.Close()
+	userSvc, authSvc, userV, aclSvc, matchSvc, matchV, presenceSvc := setupServices(cl, cfg)
 
 	uh := userhttpserverhandler.New(authSvc, userSvc, userV, cfg.Auth, presenceSvc)
 	bh := backofficehandler.New(aclSvc, authSvc, cfg.Auth)
@@ -90,7 +99,7 @@ func main() {
 	ctx := context.Background()
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, 7*time.Second)
 	defer cancel()
-	err := server.Router.Shutdown(ctxWithTimeout)
+	err = server.Router.Shutdown(ctxWithTimeout)
 	if err != nil {
 		fmt.Println("http server shutdown error", err)
 	}
@@ -102,7 +111,7 @@ func main() {
 
 }
 
-func setupServices(cfg config.Config) (userservice.Service, authservice.Service, uservalidator.Validator, aclservice.Service, matchingservice.Service, matchingvalidator.Validator, precenseservice.Service) {
+func setupServices(conn *grpc.ClientConn, cfg config.Config) (userservice.Service, authservice.Service, uservalidator.Validator, aclservice.Service, matchingservice.Service, matchingvalidator.Validator, precenseservice.Service) {
 	authSvc := authservice.New(cfg.Auth)
 	r := mysql.New(cfg.Mysql)
 	userRepo := mysqluser.New(r)
@@ -110,11 +119,14 @@ func setupServices(cfg config.Config) (userservice.Service, authservice.Service,
 	userV := uservalidator.New(userRepo)
 	aclRepo := mysqlacl.New(r)
 	aclSvc := aclservice.New(aclRepo)
-	matchSvc := matchingservice.New()
-	matchV := matchingvalidator.New()
 	redisAdp := redisadapter.New(cfg.Redis)
 	pr := redispresence.New(redisAdp)
 	presenceSvc := precenseservice.New(pr, cfg.PresenceService)
+	presenceClient := presence.New(conn)
+	matchRepo := redismatching.New(redisAdp)
+	matchSvc := matchingservice.New(cfg.Matching, matchRepo, presenceClient)
+	matchV := matchingvalidator.New()
+
 	return userSvc, authSvc, userV, aclSvc, matchSvc, matchV, presenceSvc
 
 }

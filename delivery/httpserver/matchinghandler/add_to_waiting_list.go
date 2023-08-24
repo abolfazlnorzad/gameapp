@@ -1,6 +1,7 @@
 package matchinghandler
 
 import (
+	"fmt"
 	"gameapp/dto"
 	"gameapp/pkg/claim"
 	"gameapp/pkg/httpmsg"
@@ -11,6 +12,7 @@ import (
 func (h Handler) AddToWaitList(e echo.Context) error {
 	var req dto.AddToWaitingListRequest
 	if err := e.Bind(&req); err != nil {
+		fmt.Println("eee", err)
 		return echo.NewHTTPError(http.StatusBadRequest)
 	}
 	claims := claim.GetClaims(e)
