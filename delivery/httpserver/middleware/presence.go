@@ -5,12 +5,12 @@ import (
 	"gameapp/pkg/claim"
 	"gameapp/pkg/errmsg"
 	"gameapp/pkg/timestamp"
-	"gameapp/service/precenseservice"
+	"gameapp/service/presenceservice"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
 
-func UpsertPresence(service precenseservice.Service) echo.MiddlewareFunc {
+func UpsertPresence(service presenceservice.Service) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			cl := claim.GetClaims(c)

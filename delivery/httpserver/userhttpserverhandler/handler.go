@@ -2,7 +2,7 @@ package userhttpserverhandler
 
 import (
 	"gameapp/service/authservice"
-	"gameapp/service/precenseservice"
+	"gameapp/service/presenceservice"
 	"gameapp/service/userservice"
 	"gameapp/validator/uservalidator"
 )
@@ -12,10 +12,10 @@ type Handler struct {
 	userSvc       userservice.Service
 	userValidator uservalidator.Validator
 	authCfg       authservice.Config
-	presenceSvc   precenseservice.Service
+	presenceSvc   presenceservice.Service
 }
 
-func New(authSvc authservice.Service, userSvc userservice.Service, validator uservalidator.Validator, authCfg authservice.Config, presenceSvc precenseservice.Service) Handler {
+func New(authSvc authservice.Service, userSvc userservice.Service, validator uservalidator.Validator, authCfg authservice.Config, presenceSvc presenceservice.Service) Handler {
 	return Handler{
 		authSvc:       authSvc,
 		userSvc:       userSvc,

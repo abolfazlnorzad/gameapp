@@ -5,7 +5,7 @@ import (
 	"gameapp/repository/mysql"
 	"gameapp/service/authservice"
 	"gameapp/service/matchingservice"
-	"gameapp/service/precenseservice"
+	"gameapp/service/presenceservice"
 )
 
 type HTTPServer struct {
@@ -15,7 +15,7 @@ type Config struct {
 	HTTPServer      HTTPServer             `koanf:"http_server"`
 	Auth            authservice.Config     `koanf:"auth"`
 	Mysql           mysql.Config           `koanf:"mysql"`
-	PresenceService precenseservice.Config `koanf:"presence_service"`
+	PresenceService presenceservice.Config `koanf:"presence_service"`
 	Redis           redisadapter.Config    `koanf:"redis"`
 	Matching        matchingservice.Config `koanf:"matching_service"`
 }

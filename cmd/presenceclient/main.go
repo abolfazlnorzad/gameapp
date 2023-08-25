@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"gameapp/contract/golang/presence"
+	"gameapp/contract/goproto/presence"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"gameapp/adapter/natsmatchinguser"
 	"gameapp/adapter/presence"
 	"gameapp/adapter/redisadapter"
 	"gameapp/config"
@@ -19,7 +20,7 @@ import (
 	"gameapp/service/aclservice"
 	"gameapp/service/authservice"
 	"gameapp/service/matchingservice"
-	"gameapp/service/precenseservice"
+	"gameapp/service/presenceservice"
 	"gameapp/service/userservice"
 	"gameapp/validator/matchingvalidator"
 	"gameapp/validator/uservalidator"
@@ -58,7 +59,7 @@ func main() {
 			Host:     "localhost",
 			DBName:   "gameapp_db",
 		},
-		PresenceService: precenseservice.Config{
+		PresenceService: presenceservice.Config{
 			ExpirationTime: time.Duration(time.Hour * 1),
 			Prefix:         "presence",
 		},
@@ -111,7 +112,7 @@ func main() {
 
 }
 
-func setupServices(conn *grpc.ClientConn, cfg config.Config) (userservice.Service, authservice.Service, uservalidator.Validator, aclservice.Service, matchingservice.Service, matchingvalidator.Validator, precenseservice.Service) {
+func setupServices(conn *grpc.ClientConn, cfg config.Config) (userservice.Service, authservice.Service, uservalidator.Validator, aclservice.Service, matchingservice.Service, matchingvalidator.Validator, presenceservice.Service) {
 	authSvc := authservice.New(cfg.Auth)
 	r := mysql.New(cfg.Mysql)
 	userRepo := mysqluser.New(r)
@@ -121,10 +122,11 @@ func setupServices(conn *grpc.ClientConn, cfg config.Config) (userservice.Servic
 	aclSvc := aclservice.New(aclRepo)
 	redisAdp := redisadapter.New(cfg.Redis)
 	pr := redispresence.New(redisAdp)
-	presenceSvc := precenseservice.New(pr, cfg.PresenceService)
-	presenceClient := presence.New(conn)
+	presenceSvc := presenceservice.New(pr, cfg.PresenceService)
+	presenceClient := presence.New()
 	matchRepo := redismatching.New(redisAdp)
-	matchSvc := matchingservice.New(cfg.Matching, matchRepo, presenceClient)
+	natsBroker := natsmatchinguser.New("nats://127.0.0.1:4222")
+	matchSvc := matchingservice.New(cfg.Matching, matchRepo, presenceClient, natsBroker)
 	matchV := matchingvalidator.New()
 
 	return userSvc, authSvc, userV, aclSvc, matchSvc, matchV, presenceSvc

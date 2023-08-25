@@ -3,11 +3,14 @@ package presenceserver
 import (
 	"context"
 	"fmt"
-	"gameapp/contract/golang/presence"
+	"gameapp/adapter/redisadapter"
+	"gameapp/config"
+	"gameapp/contract/goproto/presence"
 	"gameapp/dto"
-	"gameapp/pkg/protobuf"
+	"gameapp/pkg/protobufmapper"
 	"gameapp/pkg/slice"
-	"gameapp/service/precenseservice"
+	"gameapp/repository/redis/redispresence"
+	"gameapp/service/presenceservice"
 	"google.golang.org/grpc"
 	"log"
 	"net"
@@ -15,23 +18,28 @@ import (
 
 type Server struct {
 	presence.UnimplementedPresenceServiceServer
-	presenceSvc precenseservice.Service
+	psv presenceservice.Service
 }
 
-func New(pSvc precenseservice.Service) Server {
+func New(pSvc presenceservice.Service) Server {
 	return Server{
 		UnimplementedPresenceServiceServer: presence.UnimplementedPresenceServiceServer{},
-		presenceSvc:                        pSvc,
+		psv:                                pSvc,
 	}
 }
 func (s Server) GetPresence(ctx context.Context, req *presence.GetPresenceRequest) (*presence.GetPresenceResponse, error) {
-	response, err := s.presenceSvc.GetPresence(ctx, dto.GetPresenceRequest{
+	fmt.Println("req", req)
+	cfg := config.Load()
+	redisAdp := redisadapter.New(cfg.Redis)
+	pr := redispresence.New(redisAdp)
+	presenceSvc := presenceservice.New(pr, cfg.PresenceService)
+	response, err := presenceSvc.GetPresence(ctx, dto.GetPresenceRequest{
 		UserIDs: slice.MapUint64ToUint(req.UserIds),
 	})
 	if err != nil {
 		return nil, err
 	}
-	return protobuf.MapGetPresenceResponseToProtobuf(response), nil
+	return protobufmapper.MapGetPresenceResponseToProtobuf(response), nil
 }
 
 func (s Server) Start() {

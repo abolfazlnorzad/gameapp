@@ -1,4 +1,4 @@
-package precenseservice
+package presenceservice
 
 import (
 	"context"
@@ -15,6 +15,7 @@ type Config struct {
 
 type Repository interface {
 	Upsert(ctx context.Context, key string, timestamp int64, expTime time.Duration) error
+	GetPresence(ctx context.Context, prefixKey string, userIDs []uint) (map[uint]int64, error)
 }
 
 type Service struct {
@@ -38,12 +39,23 @@ func (s Service) Upsert(ctx context.Context, req dto.UpsertPresenceRequest) (dto
 	return dto.UpsertPresenceResponse{}, nil
 }
 
-func (s Service) GetPresence(ctx context.Context, request dto.GetPresenceRequest) (dto.GetPresenceResponse, error) {
-	fmt.Println("req", request)
+func (s Service) GetRepo() Repository {
+	return s.repo
+}
 
-	// TODO - implement me
-	return dto.GetPresenceResponse{Items: []dto.GetPresenceItem{
-		{UserID: 1, Timestamp: 12452151},
-		{UserID: 2, Timestamp: 124534551},
-	}}, nil
+func (s Service) GetPresence(ctx context.Context, request dto.GetPresenceRequest) (dto.GetPresenceResponse, error) {
+	list, err := s.repo.GetPresence(ctx, s.config.Prefix, request.UserIDs)
+	if err != nil {
+		return dto.GetPresenceResponse{}, err
+	}
+
+	resp := dto.GetPresenceResponse{}
+	for k, v := range list {
+		resp.Items = append(resp.Items, dto.GetPresenceItem{
+			UserID:    k,
+			Timestamp: v,
+		})
+	}
+
+	return resp, nil
 }
