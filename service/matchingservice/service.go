@@ -7,6 +7,7 @@ import (
 	"gameapp/dto"
 	"gameapp/entity"
 	"gameapp/pkg/errmsg"
+	"gameapp/pkg/protobufencoder"
 	"gameapp/pkg/richerror"
 	"gameapp/pkg/timestamp"
 	funk "github.com/thoas/go-funk"
@@ -128,10 +129,8 @@ func (s Service) Match(ctx context.Context, category entity.Category, wg *sync.W
 			Category: category,
 			UserID:   []uint{finalList[i].UserID, finalList[i+1].UserID},
 		}
-		fmt.Println("mu", mu)
-		fmt.Println("here777777")
 		// publish a new event for mu
-		go s.pub.Publish(entity.MatchingUsersMatchedEvent, "hello2")
+		go s.pub.Publish(entity.MatchingUsersMatchedEvent, protobufencoder.EncodeMatchingUsersMatchedEvent(mu))
 		// remove mu users from waiting list
 		matchedUsersToBeRemoved = append(matchedUsersToBeRemoved, mu.UserID...)
 	}

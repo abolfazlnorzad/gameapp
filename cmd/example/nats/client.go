@@ -1,9 +1,12 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
+	"gameapp/contract/goproto/matching"
 	"gameapp/entity"
 	"github.com/nats-io/nats.go"
+	"google.golang.org/protobuf/proto"
 	"os"
 	"time"
 )
@@ -30,8 +33,22 @@ func main() {
 		// For a synchronous subscription, we need to fetch the next message.
 		// However.. since the publish occured before the subscription was
 		// established, this is going to timeout.
-		msg, _ := sub.NextMsg(1 * time.Second)
-		fmt.Println("message received", msg)
+		msg, e := sub.NextMsg(1 * time.Second)
+		if e == nil {
+			decodeString, err := base64.StdEncoding.DecodeString(string(msg.Data))
+			if err != nil {
+				return
+			}
+			pbmu := matching.MatchedUsers{}
+			err = proto.Unmarshal(decodeString, &pbmu)
+			if err != nil {
+				return
+			}
+
+			fmt.Println("pbmu.Category", pbmu.Category)
+			fmt.Println("pbmu.UserIds", pbmu.UserIds)
+
+		}
 
 	}
 
