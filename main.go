@@ -11,6 +11,7 @@ import (
 	"gameapp/delivery/httpserver/backofficehandler"
 	"gameapp/delivery/httpserver/matchinghandler"
 	"gameapp/delivery/httpserver/userhttpserverhandler"
+	"gameapp/pkg/logger"
 	"gameapp/repository/mysql"
 	"gameapp/repository/mysql/mysqlacl"
 	"gameapp/repository/mysql/mysqluser"
@@ -24,6 +25,7 @@ import (
 	"gameapp/service/userservice"
 	"gameapp/validator/matchingvalidator"
 	"gameapp/validator/uservalidator"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"os"
@@ -70,7 +72,8 @@ func main() {
 			DB:       0,
 		},
 	}
-	fmt.Println("cfg", cfg)
+	logger.Logger.Named("main").Info("config", zap.Any("config", cfg))
+
 	cl, err := grpc.Dial(":8888", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		panic(err)
